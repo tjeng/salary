@@ -20,7 +20,7 @@ Analytics can be applied to understand why employees leave and predict whether a
  - Contains data for the project, obtained from Kaggle
  
  */output* folder
- - Contains output of code in word format
+ - Contains output of code, results, and visualizations in pdf format
  
  
 
