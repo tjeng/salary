@@ -1,4 +1,4 @@
-# Repository of personal projects (1 shown, others are works in progress)
+# Repository of personal projects (1 shown, more coming soon!)
 
 The project predicts whether an employee will stay or leave the company. 
 
