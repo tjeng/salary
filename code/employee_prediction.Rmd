@@ -1,0 +1,567 @@
+---
+title: "Signature Assignment"
+author: "Janice Tjeng"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+## Business Understanding
+
+### Problem
+
+High employee turnover can have a severe impact on businesses in terms of productivity, time, and money. When an employee leaves, productivity decreases and companies have to find a replacement, which costs time and money due to advertising, interviewing, training, and hiring a new employee. When an employee leaves, it takes more resources for a company to return to the same level of productivity it had before.
+
+### Analyses
+
+Analytics can be applied to understand why employees leave and predict whether an employee will leave the company. Understanding why employees leave will help organizations come up with specific strategies to retain employees, and predicting whether an employee will leave allows the company to either focus on these employees and try to retain them, or invest less efforts on these employees since they will be leaving. Therefore the analyses has two goals to solve the problem of a high turnover rate:
+
+* 1. Understand why employees leave
+* 2. Predict which employees will leave
+
+## Data Understanding
+
+The data set comes from kaggle, does not contain any missing values, and is simulated. The outcome is a categorical variable indicating whether an employee will leave or stay (0: no,stay, 1: yes,leave). Other variables include:
+
+*	Satisfaction level (numeric, ranges from 0-1)
+*	Time since last performance evaluation (numeric, ranges from 0-1, measured in fraction of years)
+*	Number of projects completed (numeric)
+*	Average monthly hours (numeric)
+*	Number of years in the company (numeric)
+*	Work place accident (categorical, 0/1)
+*	Promotion last 5 years (categorical, 0/1)
+*	Department worked for (categorical, multiple levels)
+*	Salary level (categorical, low/medium/high)
+
+### Data Acquisition
+
+```{r}
+library(tidyverse)
+hr <- read_csv("../data/employee_prediction.csv")
+```
+
+### Data Exploration
+
+```{r}
+str(hr)
+summary(hr) # No missing values in data
+```
+
+Based on the summary statistics, values of different variables seem to make sense as there are no negative values for numerical variables. I will examine the distribution in greater detail in the section below.
+
+#### Exploratory data plots
+
+The amount of time employees work, their satisfaction level, and salaries, affect the company's turnover rate. For exploration, I am going to look at the distribution of hours ansatisfaction level for those who left vs those who stayed to understand how the distributions differ. I will also look at the proportion of people in each salary category and compare that between those who left and those who stayed.
+
+```{r}
+left <- hr %>%
+  filter(left==1) 
+stay <- hr %>%
+  filter(left==0)
+
+# Average monthly hours for people who left vs those who stayed
+hist(left$average_montly_hours)
+hist(stay$average_montly_hours)
+
+# Satisfaction level for people who left vs people who stayed
+hist(left$satisfaction_level)
+hist(stay$satisfaction_level)
+
+# Salary of people who leave vs those who stayed
+hr %>%
+  group_by(salary) %>%
+  summarize(left=mean(left),
+            stay=1-left) %>%
+  gather(`left`,`stay`,key="Type",value="Proportion") %>%
+  ggplot(aes(x=salary,y=Proportion)) +
+  geom_col(aes(fill=Type), position="dodge")
+```
+
+People who stay mostly work between 130-270 hours while there is a greater variation in the number of hours worked for people who left. Similarly, there is a greater variation in satisfaction level for people who left, compared to rhar for people who stayed, and most people who stayed have satisfaction level above 0.5.
+
+From the salary distribution, here is a higher proportion of people who stay than those who left. Most people who left have low and medium salary.
+
+#### Outlier detection
+
+Outliers are detected based on z-score standardization.
+
+```{r}
+# z-score standardization
+standardize <- function(x){
+  return ((x-mean(x))/sd(x))
+}
+hr.standardized <- hr %>%
+  mutate_at(vars(satisfaction_level,last_evaluation,number_project,average_montly_hours,time_spend_company), standardize)
+summary(hr.standardized)
+```
+
+With a maximum z-score of 4, it looks like time spend in the company contain outliers. 
+
+Let's look at boxplots to visualize outliers
+```{r}
+boxplot(hr$time_spend_company) # Outliers with values above 5. The distribution looks right skewed because the median is towards the lower quartile (more observations with lower values).
+
+# Boxplox did not show outliers for other numeric features. Abolsute z-scores for these features are also within 3 standard deviations from the mean.
+boxplot(hr$satisfaction_level)
+boxplot(hr$last_evaluation)
+boxplot(hr$number_project)
+boxplot(hr$average_montly_hours)
+```
+
+#### Correlation/collinearity analysis
+
+pairs.panels() will be used for collinearity analyses as well as assess distributional skew.
+
+```{r}
+library(psych)
+pairs.panels(hr) 
+```
+
+There are few significant collinearities (correlations > 0.3), and multiple weak ones, but none of them are very strong (correlations < 0.5). Satisfaction level is negatively correlated (-0.39) with left. People who are satisfied with their job are less likely to leave. Last evaluation, number of projects, and average monthly hours are positively correlated with one another. As number of projects increase, so does average monthly hours and time since last evaluation, and vice-versa.  
+
+Regression assumes that features are normally distributed. For numeric features, time spend in the company is right skewed and has to be transformed (transformation shown in data shaping). Other numeric features are roughly normally distributed. For nominal features, it does not make much sense to transform to a normal distribution since the counts are based on categories. 
+
+## Data Preparation
+
+### Data Cleaning
+
+#### Dealing with outliers
+
+Strategies dealing with outliers involve capping and prediction (Prabhakaran, 2017). Capping replaces outliers that are lower or above the 1.5*inter-quartile range (IQR) with the 5th and 95th percentile respectively. Prediction treats outliers as missing values, which are imputed via the mean, median, or mode, or machine learning techniques that consider the column with missing values as the response variable. 
+http://r-statistics.co/Outlier-Treatment-With-R.html
+
+Since the project involves imputing missing values, I will treat outliers as missing values and impute them via a machine learning technique. I will also compare this approach with capping by comparing model performance after applying models on each of the data set (data set with capping applied vs data set with missing values imputed).
+
+**Capping**
+```{r}
+out <- hr$time_spend_company
+qnt <- quantile(out, probs=c(0.25,0.75)) # values of 1st and 3rd quarter
+caps <- quantile(out, probs=c(0.05,0.95)) # values of 5th and 95th percentile
+H <- 1.5*IQR(out)
+out[out>qnt[2]+H] <- caps[2]
+hr.capping <- hr %>%
+  mutate(time_spend_company=ifelse(time_spend_company>(qnt[2]+H),caps[2],time_spend_company)) %>% # only consider upper limit since boxplot shows outliers in the upper limit
+  mutate_at(vars(Work_accident,promotion_last_5years,sales, salary, left), as.factor)
+```
+
+**Imputing missing values**
+```{r}
+# Since features are a mix of categorical and numeric types, and the missing values to impute are of numeric type, I will do a regression tree to impute those values
+library(rpart)
+hr.impute <- hr %>%
+  mutate(time_spend_company=ifelse(time_spend_company>(qnt[2]+H),NA,time_spend_company)) %>% # Replace outliers with NA
+  mutate_at(vars(Work_accident,promotion_last_5years,sales, salary, left), as.factor)  
+model_tree <- rpart(time_spend_company~., data=hr.impute)
+predict_tree <- predict(model_tree,hr.impute[-5])
+hr.impute1 <- hr.impute %>%
+  mutate(time_spend_company=ifelse(is.na(time_spend_company),predict_tree,time_spend_company))
+```
+
+### Data Shaping
+
+#### Dealing with distributional skew
+
+Box-cox transformation applied, which generates the lambda value required to transform the variable to a normal distribution.
+
+```{r}
+library(MASS)
+library(rcompanion)
+# Imputed data
+box <- boxcox(hr.impute1$time_spend_company~1)
+cox <- data.frame(box$x, box$y)
+cox2 <- cox[with(cox, order(-cox$box.y)),]
+lambda <- cox2[1,"box.x"]
+trans.hr <- (hr.impute1$time_spend_company ^ lambda - 1)/lambda
+plotNormalHistogram(trans.hr)
+hr.impute2 <- hr.impute1 %>%
+  mutate(time_spend_company=trans.hr)
+# Capped data
+box1 <- boxcox(hr.capping$time_spend_company~1)
+cox1 <- data.frame(box1$x, box1$y)
+cox3 <- cox1[with(cox1, order(-cox1$box1.y)),]
+lambda1 <- cox3[1,"box1.x"]
+trans.hr1 <- (hr.capping$time_spend_company ^ lambda1 - 1)/lambda1
+plotNormalHistogram(trans.hr1)
+hr.capping1 <- hr.capping %>%
+  mutate(time_spend_company=trans.hr1)
+```
+
+#### Normalization
+
+I did standardization for outlier detection in the data exploration stage. Since standardization for scaling the data to a small interval works best for normally distributed features and not all features are exactly normally distributed, I will apply normalization instead. Such is necessary for models that involve distance measures such as kNN, neural networks, and SVM.
+
+```{r}
+normalize <- function(x){
+  return((x-min(x))/(max(x)-min(x)))
+}
+
+hr.imp.norm <- hr.impute2 %>%
+  mutate_at(vars(satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company), normalize)
+head(hr.imp.norm)
+hr.cap.norm <- hr.capping1 %>%
+  mutate_at(vars(satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company), normalize)
+head(hr.cap.norm)
+```
+
+#### Feature Engineering
+
+##### Dummy codes
+
+Dummy coding converts categorical into numeric features, which is necessary for models that work best with numeric features such as kNN, regression, and SVM. Categorical variables n levels will be dummy coded to have n-1 columns. For a variable with 2 levels, additional transformation is not necessary (just need to convert categorical variable into numeric) because there is only one variable (2-1). For a variable with at least 3 levels, additional tranformation for each column will be done via the following function:
+
+```{r}
+dummy <- function(data, column){
+  binom <- data.frame(y=runif(nrow(data)), x=runif(nrow(data)), col=column)
+  dummy <- as.data.frame(model.matrix(y~x+col, binom))
+  return (dummy %>%
+            dplyr::select (-c(1,2)))
+}
+
+df_sales <- dummy(hr.imp.norm, hr.imp.norm$sales)
+df_salary <- dummy(hr.cap.norm, hr.cap.norm$salary)
+hr.imp.n.d <- hr.imp.norm %>%
+  dplyr::select(-c(sales,salary)) %>%
+  cbind(df_sales,df_salary) %>%
+  mutate(Work_accident=as.numeric(levels(Work_accident)[Work_accident]),
+         promotion_last_5years=as.numeric(levels(promotion_last_5years)[promotion_last_5years]))
+head(hr.imp.n.d)
+hr.cap.n.d <- hr.cap.norm %>%
+  dplyr::select(-c(sales,salary)) %>%
+  cbind(df_sales,df_salary) %>%
+  mutate(Work_accident=as.numeric(levels(Work_accident)[Work_accident]),
+         promotion_last_5years=as.numeric(levels(promotion_last_5years)[promotion_last_5years]))
+```
+##### New derived features
+
+There are no newly derived features necessary in this data set.
+
+##### PCA
+
+A multi-factor analyses (MFA) that takes into account categorical and numeric features would be used to see which features explain most of the variation in the data set. Although a regular principal component analysis can be done after transforming categorical features into numeric (through dummy coding), it is difficult to interpret which features are important when there are dummy coded features that are not actual distinct features.
+
+**MFA**
+```{r}
+library(FactoMineR)
+library(factoextra)
+hr.impute3 <- hr.impute2 %>%
+  dplyr::select(1:6,9,8,10) # reorder columns
+hr.mfa <- MFA(hr.impute3,
+              group=c(1,3,1,4), # group columns together
+              type=c("s","s","s","n"),
+              name.group = c("satisfaction","project_hours","time","category"),
+              graph=F)
+fviz_screeplot(hr.mfa) # First 3 components explain most variance in data
+# Contribution in each component.dimension
+fviz_contrib(hr.mfa, "group", axes = 1) 
+fviz_contrib(hr.mfa, "group", axes = 2) 
+fviz_contrib(hr.mfa, "group", axes = 3) 
+group <- get_mfa_var(hr.mfa,"group")
+group$correlation
+group$contrib
+```
+
+According to the screeplot, the first 3 components explain most of the variation in the data set. Time contributes most to the first dimension, and has the highest correlation in the first dimension. Category group (includes all categorical features except left (whether an employee left)) contributes most to the second through fifth dimensions and has the highest correlation in those dimensions. 
+
+```{r}
+# Plot groups of variables
+fviz_mfa_var(hr.mfa, "group")
+```
+
+Time spend in the company contributes most to the first dimension while categorical features contribute most to the second dimension. Satisfaction and project hours have roughly equal contributions in both dimensions. Therefore, it appears that all features explain variation in the data set and should be kept.
+
+```{r}
+# Visualize correlation of quantitative variables
+fviz_mfa_var(hr.mfa, "quanti.var", palette = "jco", 
+             col.var.sup = "violet", repel = TRUE) 
+```
+
+Variables that point in the same direction are positively correlated with one another while those that point in the opposite direction are negatively correlated with one another. According to the pairs.panels() plot shown in the data exploration stage, time spend in the company, last evaluation, average monthly hours, and number of projects are positively correlated with one another because they point in the same direction in one quadrant. On the other hand, satisfaction level is negatively correlated with other variables because satisfaction level points in a different direction in a different quadrant. However, the correlations are not very strong because the direction of satisfaction level is not completely opposite that of time spend company, and variables that positively correlate with each other do not completely align with one another. The correlations from pairs.panels also show that they are not very strong (correlations<0.5)
+
+## Modeling & Evaluation
+
+### Creation of training and validation subsets
+
+Training and testing sets would be split into 80% and 20% respectively.
+
+```{r}
+set.seed(577)
+n <- nrow(hr.imp.n.d)
+size <- n*0.8
+train_sample <- sample(n, size)
+# Imputed data set
+hr_train <- hr.imp.n.d[train_sample,]
+hr_test <- hr.imp.n.d[-train_sample,]
+prop.table(table(hr_train$left))
+prop.table(table(hr_test$left))
+
+# Capped data set
+hr_train_cap <- hr.cap.n.d[train_sample,]
+hr_test_cap <- hr.cap.n.d[-train_sample,]
+prop.table(table(hr_train_cap$left))
+prop.table(table(hr_test_cap$left))
+```
+
+There is a fairly even split of employees in each category in the training and testing data sets.
+
+### Model Construction and Evaluation
+
+Since I am predicting a binary outcome, here are the models that work:
+
+* kNN
+* Naive Bayes
+* Decision Tree
+* Logistic Regression
+* SVM
+* Neural network
+* Random forest
+
+
+Since the variables in the data set are a combination of categorical and numeric types, decision tree and its ensemble, random forest, are the only models among those listed above, that does not require any data processing as they accept numerical and categorical features. Neural network also accepts both types of features but numerical features need to be scaled to a small interval. I wanted to explore how model performance would differ among those that require extensive data transformation vs those that do not require extensive data transformation. I also wanted to see the difference in model performance across black box model and white box model. Therefore, I decided to use the following models:
+
+* SVM (black box model, requires dummy coding as well as normalization)
+* Logistic regression (straightforward commonly used model, determine whether most important features are the same as those determined by MFA- investigate feature selection techniques. Also used to understand why employees leave)
+* Decision Tree (white box model, does not require data processing)
+* Random Forest (ensemble of decision trees, but more of a black box model)
+* Stacked ensemble 
+
+
+#### 1. SVM
+```{r}
+set.seed(577)
+library(caret)
+library(kernlab)
+# Imputed data set
+m_svm <- ksvm(left~., data=hr_train, kernel="rbfdot")
+p_svm <- predict(m_svm, hr_test, type="response")
+confusionMatrix(p_svm, hr_test$left, positive = "1")
+cat("% of false positives (FP) is \n",round((74/3000)*100,2), "% of false negatives (FN) is \n",round((64/3000)*100,2))
+# Capped data set
+m_svm_cap <- ksvm(left~., data=hr_train_cap, kernel="rbfdot")
+p_svm_cap <- predict(m_svm_cap, hr_test_cap, type="response")
+confusionMatrix(p_svm_cap, hr_test_cap$left, positive = "1")
+cat("% of false positives (FP) is \n",round((72/3000)*100,2), "% of false negatives (FN) is \n",round((74/3000)*100,2))
+```
+
+There is a slight difference in model performance between the imputed and capped data set. The imputed data set performs slightly better in terms of higher accuracy, Kappa value, and lower % of FN.
+
+The SVM model for the imputed data set has a high performance accuracy of 95.6% and a kappa statistic of 0.88 (very good agreement betweem model's prediction and true values), as well as a low FN rate of 2.13%. 
+
+#### 2. Logistic regression
+```{r}
+# Imputed data
+train <- hr.imp.norm[train_sample,] # Use data set without dummy coding for easier handling of variable names as regression will automatically create dummy variables
+test <- hr.imp.norm[-train_sample,]
+m_lr <- glm(left~., data=train, family="binomial")
+summary(m_lr) # Sales marketing has the highest p-value
+# Remove sales variable and conduct a likelihood ratio test to determine if the variable should be included in the model
+train1 <- train %>%
+  dplyr::select(-sales)
+m_lr1 <- glm(left~.,data=train1, family="binomial")
+anova(m_lr,m_lr1,test="LRT") # Because there is a significant difference (p-value<0.05) when sales is included vs when it is not included, sales should be included in the model even though some levels might not be significant
+train2 <- train %>%
+  dplyr::select(-last_evaluation) # Remove next highest p-value
+m_lr2 <- glm(left~., data=train2, family="binomial")
+summary(m_lr2) # Now everything else is significant
+p_lr <- predict(m_lr2, test, type="response")
+p_lr1 <- ifelse(p_lr>0.5,1,0)
+confusionMatrix(p_lr1, test$left, positive = "1")
+cat("% of false positives (FP) is \n",round((185/3000)*100,2), "% of false negatives (FN) is \n",round((328/3000)*100,2))
+
+# Capped data
+train_cap <- hr.cap.norm[train_sample,]
+test_cap <- hr.cap.norm[-train_sample,]
+c_lr <- glm(left~.,data=train_cap,family="binomial")
+summary(c_lr)
+train_cap1 <- train_cap %>%
+  dplyr::select(-sales)
+c_lr1 <- glm(left~., data=train_cap1, family="binomial")
+anova(c_lr1, c_lr, test="LRT") # sales should be included
+p_c_lr <- predict(c_lr, test_cap, type="response")
+p_c_lr1 <- ifelse(p_c_lr>0.5,1,0)
+confusionMatrix(p_c_lr1,test_cap$left, positive="1")
+cat("% of false positives (FP) is \n",round((182/3000)*100,2), "% of false negatives (FN) is \n",round((432/3000)*100,2))
+```
+
+Backfitting is applied in the logistic regression model where features with the highest p-value are removed each time, until each of the remaining features have a p-value<0.05. For categorical features that have been dummy coded, certain levels are not statistically significant. The significance of the categorical variable as a whole is tested using a likelihood ratio test where the model with that categorical feature is compared to a model without that feature. If the test shows significant difference (p<0.05), then the model with that variable is significantly different from a model without that variable and the variable should be included in the model. 
+
+There is a better model performance in the imputed data set than the capped data set. The former has a higher accuracy, kappa value, and lower false negative rate. The difference in model performance is greater than that of SVM. Because SVM is not sensitive to outliers while logistic regression is, different methods of dealing with outliers will affect logsitic regression models more than they affect SVM. 
+
+The logistic regression model for the imputed data set has an accuracy of 82.9%, kappa statistic of 0.49 (moderate agreement between predicted and true values), and an FN rate of 10.9%. The SVM model performs better than the logisitc regression model in these 3 aspects (accuracy, kappa value, and FN rate).
+
+The features selected from the logistic regression model (for the imputed data set) aligns with that of the MFA in the following ways:
+
+* Time spend in the company has the highest absolute coefficient (coefficients can be compared since data set is normalized), which coincides with the MFA that time contributes most to the first dimension, that explains most variation in the data
+* All categorical features are included in the logistic regression model, which coincides with the MFA that categorical features contribute most to the second dimension
+* The MFA analyses indicate that all features should be kept as they contribute to the first two dimensions. The logisitc regression model includes all features except for last evaluation, which is grouped with monthly hours and number of project in the MFA, meaning that the group as a whole should be kept
+
+Based on the logistic regression model, employees are more likely to leave if they:
+
+#### 3. Decision Tree vs Random Forest 
+
+```{r}
+set.seed(577)
+library(RWeka)
+# Imputed data set
+m_d <- J48(left~.,data=hr_train)
+p_d <- predict(m_d, hr_test)
+confusionMatrix(p_d, hr_test$left, positive="1")
+cat("% of false positives (FP) is \n",round((11/3000)*100,2), "% of false negatives (FN) is \n",round((48/3000)*100,2))
+# Capped data set
+m_d_cap <- J48(left~.,data=hr_train_cap)
+p_d_cap <- predict(m_d_cap,hr_test_cap)
+confusionMatrix(p_d_cap, hr_test_cap$left, positive="1")
+cat("% of false positives (FP) is \n",round((14/3000)*100,2), "% of false negatives (FN) is \n",round((51/3000)*100,2))
+```
+
+In the case of the decision tree model, there is a very slight difference in model performance between the capped and imputed data set. The imputed data set perform slightly better in terms of slightly higher kappa value, accuracy, and slightly lower FN rate. Similar to SVM, decision trees are not sensitive to outliers, and the presence of outliers would not greatly affect model performance. 
+
+The decision tree model performs better than the SVM.
+
+* Decision tree: accuracy of 98%, kappa value of 0.94, and FN rate of 1.6%
+* SVM: accuracy of 95.6%, kappa value of 0.88, and FN rate of 2.13%
+
+Let's look at random forest 
+
+```{r}
+library(randomForest)
+# Imputed data set
+rf <- randomForest(left~., data=hr_train)
+rf_p <- predict(rf, hr_test)
+confusionMatrix(rf_p, hr_test$left, positive="1")
+cat("% of false positives (FP) is \n",round((2/3000)*100,2), "% of false negatives (FN) is \n",round((21/3000)*100,2))
+# Capped data set
+rf_cap <- randomForest(left~., data=hr_train_cap)
+rf_p_cap <- predict(rf, hr_test_cap)
+confusionMatrix(rf_p_cap, hr_test_cap$left, positive="1")
+cat("% of false positives (FP) is \n",round((4/3000)*100,2), "% of false negatives (FN) is \n",round((360/3000)*100,2))
+```
+
+Random forest model performs better on the imputed data set than the capped data set, and the difference is substantial. Even though random forests, SVM, and decision trees can handle missing or noisy data, methods to deal with outliers still affect model performance. Across all models, the imputation strategy that replaces outliers via a machine learning technique where the outcome variable is the column that contains missing values, produces higher performance than capping (simply replacing outliers with a certain value). This is because, the imputation technique (regression tree in the example dealing with outliers) produces more variation than the capping technique, and are more accurate representation of actual values.
+
+The random forest model on the imputed data set produces the best model performance amongst logistic regression, decision tree, and SVM. It results in an accuracy of 98.9%, kappa value of 0.97, and FN rate of 0.7%.
+
+**AUC**
+
+Apply AUC on the data set with better performance in each model.
+
+```{r}
+library(caTools)
+# SVM
+colAUC(as.numeric(p_svm), hr_test$left)
+# Logistic regression
+colAUC(p_lr1, test$left)
+# Decision Tree
+colAUC(as.numeric(p_d_cap), hr_test$left)
+# Random forest
+colAUC(as.numeric(rf_p), hr_test$left)
+```
+
+#### Stacked ensemble model
+
+I will build a stacked emsemble model by first combining multiple models (SVM, logistic regression, and decision tree, not including random forest because that would take too long to run), then utilize another model (random forest) to learn a combination function from the combined models, using the caretEnsemble package. 
+
+I will apply 10-fold cross validation in each model for evaluation of fit and select the simplest model (most parsimonous according to the oneSE function) to avoid overfitting.
+
+**Combining models**
+
+Use imputed data set
+
+```{r}
+library(caretEnsemble)
+set.seed(577)
+hr_train1 <- hr_train %>%
+  mutate(left=factor(left, labels=c("leave","stay"), levels=c(1,0)))
+control <- trainControl(method="cv", selectionFunction = "oneSE", savePredictions=T, classProbs = T) # Conduct 10 fold cross validation for each model. Select the simplest result according to oneSE rule
+algorithms <- c("glm","J48","svmRadial") # models to combine
+models <- caretList(left~., hr_train1, trControl=control,methodList=algorithms)
+models
+results <- resamples(models)
+summary(results)
+dotplot(results)
+modelCor(results) # Check that correlations are not >0.75, because then models would be making similar predictions most of the time, reducing benefit of combining predictions. 
+```
+
+**Stacking**
+
+I will tune the model based on bootstrap sampling.
+```{r}
+set.seed(577)
+stack.rf <- caretStack(models, method="rf", metric="Accuracy", trControl=trainControl(method="boot", number=10, classProbs = T)) # tune model in trainControl parameter
+stack.rf
+hr_test1 <- hr_test %>%
+  mutate(left=factor(left, labels=c("leave","stay"), levels=c(1,0)))
+p_models <- predict(stack.rf, hr_test1, type="prob") # Output probability of leaving
+colAUC(p_models, hr_test1$left)
+```
+Model performance of stacked ensemble model has higher accuracy and kappa value than any individual model (logisitc regression, decision tree or logistic regression). However, the ensemble model, random forest, has a slightly higher accuracy and kappa value than the stacked ensemble model. 
+
+After predicting the testing data set, the stacked ensemble model yields an AUC of 0.977, which is higher than the AUC of individual model but slightly lower than the AUC of random forest (0.980). 
+  
+## Conclusion
+
+### Comparison of models
+
+Table shown in pdf report
+
+### Interpretation of results/prediction with interval
+
+```{r}
+# Interval for random forest
+rf_prob <- predict(rf, hr_test, type="prob")
+se <- (sd(rf_prob)/(sqrt((nrow(rf_prob))-1)))
+intervals <- 1.96*se
+# Interval for stacked model
+se_stacked <- (sd(p_models)/(sqrt((length(p_models))-1)))
+intervals_stacked <- 1.96*se_stacked
+```
+
+**Unknown case**
+
+* satisfaction level=0.1
+* last evaluation=0.9
+* number of projects =2
+* average monthly hours=140
+* time spend in company =2
+* No work place accident
+* Not promoted in last 5 years
+* medium salary
+* work in accounting department
+
+```{r}
+hr_unknown <- rbind(hr_test, c(0.1,0.9,2,140,2,0,NA,0,0,0,0,0,0,0,0,0,0,0,1)) %>%
+  slice(3001)
+# Normalize numeric features as done for known cases
+hr_unknown$satisfaction_level <- (hr_unknown$satisfaction_level-min(hr$satisfaction_level))/(max(hr$satisfaction_level)-min(hr$satisfaction_level))
+hr_unknown$last_evaluation <- (hr_unknown$last_evaluation-min(hr$last_evaluation))/(max(hr$last_evaluation)-min(hr$last_evaluation))
+hr_unknown$number_project <- (hr_unknown$number_project-min(hr$number_project))/(max(hr$number_project)-min(hr$number_project))
+hr_unknown$average_montly_hours <- (hr_unknown$average_montly_hours-min(hr$average_montly_hours))/(max(hr$average_montly_hours)-min(hr$average_montly_hours))
+hr_unknown$time_spend_company <- (hr_unknown$time_spend_company-min(hr$time_spend_company))/(max(hr$time_spend_company)-min(hr$time_spend_company))
+```
+
+**Confidence interval using random forest**
+```{r}
+set.seed(577)
+# Outputs probability of both classes
+upp <- predict(rf, hr_unknown, type="prob")+intervals
+low <- predict(rf, hr_unknown, type="prob")-intervals
+cat("The 95% confidence interval of an employee staying ranges from \n", round(low[1],2), "to \n", round(upp[1],2))
+cat("The 95% confidence interval of an employee leaving ranges from \n", round(low[2],2), "to \n", round(upp[2],2))
+cat("Since there is a higher probability that the employee will stay, the random forest model predicts that an employee with the following characteristics will stay.")
+```
+
+**Confidence interval using stacked model**
+```{r}
+set.seed(577)
+# Outputs probability of positive class (leave)
+upp_p <- predict(stack.rf, hr_unknown, type="prob") + intervals_stacked 
+low_p <- predict(stack.rf, hr_unknown, type="prob") - intervals_stacked
+prob_stay <- 1- predict(stack.rf, hr_unknown, type="prob")
+upp_n <- prob_stay+intervals_stacked
+low_n <- prob_stay-intervals_stacked
+cat("The 95% confidence interval of an employee leaving ranges from \n", round(low_p,2), "to \n", round(upp_p,2))
+cat("The 95% confidence interval of an employee staying ranges from \n", round(low_n,2), "to \n", round(upp_n,2))
+cat("Since there is a higher probability that the employee will stay, the stacked ensemble model predicts that an employee with the following characteristics will stay.")
+```
