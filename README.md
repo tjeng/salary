@@ -14,5 +14,5 @@ The company can avoid over spending by knowing how much new hires are going to c
 
 End to end solution is detailed in *salary.ipynb* and the datasets can be found in *./data*
 
-![Solution](file:///C:/Users/HR/Documents/DSDJ/Instructions_and_Notebook/salary.html)
+![Solution](https://github.com/tjeng/projects/blob/master/salary.ipynb)
 
