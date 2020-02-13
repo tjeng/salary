@@ -11,5 +11,4 @@ Imagine that a company spends **500,000 dollars** on new hires annually when it 
 ### Solution
 
  
- 
 
