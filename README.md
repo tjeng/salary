@@ -1,26 +1,16 @@
 # Repository of personal projects (1 shown, more coming soon!)
 
-The project predicts whether an employee will stay or leave the company. 
+The project predicts salary based on job descriptions. 
 
 ### Problem
 
-High employee turnover can have a severe impact on businesses in terms of productivity, time, and money. When an employee leaves, productivity decreases and companies have to find a replacement, which costs time and money due to advertising, interviewing, training, and hiring a new employee. When an employee leaves, it takes more resources for a company to return to the same level of productivity it had before.
+Companies often face a problem of **over spending** on new hires, whereby they spend more money than they have to hire new people. Over spending would negatively impact the financial health of the company and result in decreased profit, debts, and even bankcruptcy if uncontrolled. 
+
+Imagine that a company spends **500,000 dollars** on new hires annually when it has **200,000 dollars**. The company incurs a deficit of **300,000 dollars**. The company can avoid over spending by knowing how much new hires are going to cost, and compare the cost with what they have, to determine who and how many people they can hire.
 
 ### Solution
 
-Analytics can be applied to understand why employees leave and predict whether an employee will leave the company. Understanding why employees leave will help organizations come up with specific strategies to retain employees, and predicting whether an employee will leave allows the company to either focus on these employees and try to retain them, or invest less efforts on these employees since they will be leaving. Therefore the analyses has two goals to solve the problem of a high turnover rate:
-
-  1. Understand why employees leave
-  2. Predict which employees will leave
- 
- */code* folder
- - Contains R Markdown notebook that provides an end to end solution
- 
- */data* folder
- - Contains data for the project, obtained from Kaggle
- 
- */output* folder
- - Contains output of code, results, and visualizations in pdf format
+<a href="file:///C:/Users/HR/Documents/DSDJ/Instructions_and_Notebook/salary.html" title="Salary analysis & prediction">Salary analysis & prediction</a>
  
  
 
