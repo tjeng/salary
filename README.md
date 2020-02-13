@@ -13,3 +13,6 @@ Imagine that a company spends **500,000 dollars** on new hires annually when it 
 The company can avoid over spending by knowing how much new hires are going to cost, and compare the cost with what they have, to determine who and how many people they can hire.
 
 End to end solution is detailed in *salary.ipynb* and the datasets can be found in *./data*
+
+![Solution](file:///C:/Users/HR/Documents/DSDJ/Instructions_and_Notebook/salary.html)
+
