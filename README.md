@@ -1,4 +1,4 @@
-# Repository of personal projects (1 shown, more coming soon!)
+# Salary analysis & prediction
 
 The project predicts salary based on job descriptions. 
 
