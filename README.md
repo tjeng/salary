@@ -2,7 +2,13 @@
 
 ## Project Summary
 
-This project will analyze salaries of job descriptions based on job type, industry, major, degree, company, years of experience, miles away from city, and predict salaries of job descriptions to allow companies to allocate budget for new hires and avoid overspending. Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
+This project will analyze salaries of job descriptions based on job type, industry, major, degree, years of experience, miles away from city, and predict salaries of job descriptions to allow companies to allocate budget for new hires and avoid overspending. Based on how the above variables influence salary, candidates can also strategically target the type of company they want to work for to achieve their desired salary.
+
+Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The model with the lowest Mean Squared Error will be implemented. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
+
+![4D Framework](/images/4D_DS_framework.png)
+
+*Concept discussed by Kyle McKiou*
 
 End to end solution is linked: [Solution](https://github.com/tjeng/projects/blob/master/salary.ipynb)
 
