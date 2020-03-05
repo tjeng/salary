@@ -6,7 +6,7 @@ This project will analyze salaries of job descriptions based on job type, indust
 
 Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The model with the lowest Mean Squared Error will be implemented. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
 
-![4D Framework](./images/4D_DS_framework.png)
+![4D Framework](./images/4D_DS_framework.PNG)
 
 *Concept discussed by Kyle McKiou*
 
@@ -22,11 +22,11 @@ Imagine that a company spends **500,000 dollars** on new hires annually when it 
 
 The data set consists of 10k rows and 9 columns with the following information:
 
-![Data](./images/data.png)
+![Data](./images/data.PNG)
 
 ### Distribution plots (y-axis represents density - probability of value being observed in the data set)
 
-![Distribution](./images/dist.png)
+![Distribution](./images/dist.PNG)
 
 Salary follows a close to normal distribution, implying that a most of the jobs pay close to the average salary, with equally few jobs that are extremely low and high paying. On the other hand, years of experience and miles from metropolis have a uniform distribution, implying that there is an equal number of jobs with varying years of experience and miles away from city.
 
