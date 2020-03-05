@@ -6,7 +6,7 @@ This project will analyze salaries of job descriptions based on job type, indust
 
 Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The model with the lowest Mean Squared Error will be implemented. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
 
-![4D Framework](/images/4D_DS_framework.png)
+![4D Framework](./images/4D_DS_framework.png)
 
 *Concept discussed by Kyle McKiou*
 
@@ -22,21 +22,21 @@ Imagine that a company spends **500,000 dollars** on new hires annually when it 
 
 The data set consists of 10k rows and 9 columns with the following information:
 
-![Data](/images/data.png)
+![Data](./images/data.png)
 
 ### Distribution plots (y-axis represents density - probability of value being observed in the data set)
 
-![Distribution](/images/dist.png)
+![Distribution](./images/dist.png)
 
 Salary follows a close to normal distribution, implying that a most of the jobs pay close to the average salary, with equally few jobs that are extremely low and high paying. On the other hand, years of experience and miles from metropolis have a uniform distribution, implying that there is an equal number of jobs with varying years of experience and miles away from city.
 
 ### Relationship between independent variables and salary 
 
-![Numeric](/images/numeric.png)
+![Numeric](./images/numeric.png)
 
 Salary increases linearly with increasing years of experience and decreases linearly as location is further away from the city. The standard deviation shows the variation around the mean. For example, a candidate with 5 years of experience will earn an average of $100k but salary ranges from $70-$130k. As we can see later, the variation in salary depends on industry and type of position.
 
-![Boxplot](/images/boxplot.png)
+![Boxplot](./images/boxplot.png)
 
 *Job type and average salary*
 
@@ -56,7 +56,7 @@ Finance and oil are the highest paying industries.
 
 ### Relationship between multiple independent variables and salary
 
-![Heatmaps](/images/heatmap.png)
+![Heatmaps](./images/heatmap.png)
 
 *Degree and industry*
 
@@ -72,7 +72,7 @@ One-hot encoding is applied to transform categorical features into numeric where
 
 After which, data is split into training and testing sets of 80% and 20% respectively.
 
-![Models](/images/model.png)
+![Models](./images/model.png)
 
 ## Deploy
 
