@@ -68,7 +68,11 @@ This is an interesting trend as we see that majors that are directly related to 
 
 ## Develop
 
-![Models](/images/results.png)
+One-hot encoding is applied to transform categorical features into numeric where each category becomes a column with values 0 or 1 indicating whether that value is absent or present in the column. 
+
+After which, data is split into training and testing sets of 80% and 20% respectively.
+
+![Models](/images/model.png)
 
 ## Deploy
 
