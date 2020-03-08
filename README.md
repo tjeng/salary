@@ -4,7 +4,7 @@
 
 This project will analyze salaries of job descriptions based on job type, industry, major, degree, years of experience, miles away from city, and predict salaries of job descriptions to allow companies to allocate budget for new hires and avoid overspending. Based on how the above variables influence salary, candidates can also strategically target the type of company they want to work for to achieve their desired salary.
 
-Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The model with the lowest Mean Squared Error will be implemented. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
+Exploratory Data Analysis will be conducted by visualizing relationships among all variables, and 3 machine learning methods, Linear Regression, Random Forest, and Gradient Boosting, will be applied to predict salaries. The model with the lowest Mean Squared Error (MSE) will be implemented. The project will be completed using the 4D framework: Define, Discover, Develop, Deploy.
 
 ![4D Framework](./images/4D_DS_framework.PNG)
 
@@ -72,7 +72,15 @@ One-hot encoding is applied to transform categorical features into numeric where
 
 After which, data is split into training and testing sets of 80% and 20% respectively.
 
+There is linear relationship between the variables and salary, hence a linear regression model is one of the models we will try given that its easily interpretable and productionalize. We will also try Random Forest and Gradient Boosting, both are tree-based ensemble models that unlike the linear regression model, are robust to outliers and do not require parametric assumptions in the data. Model results are shown below:
+
 ![Models](./images/model.png)
+
+Feature importances of the Gradient Boosting model is shown below:
+
+![Feature](./images/feature.png)
+
+Job type, years of experience, and location influence salary more than degree and major. Looking at the top 5 features for job type, junior and janitorial positions have more predictable salary compared to other positions. This is possible because entry-level and certain types of position are more likely to have a fix salary. It is intuitive that years of experience and location strongly influence salary as people get compensated more if they have more years of experience and are closer to the city, vice-versa. Feature importance for Random Forest shows similar patterns.
 
 ## Deploy
 
