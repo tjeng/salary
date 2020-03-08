@@ -36,7 +36,9 @@ Salary follows a close to normal distribution, implying that a most of the jobs 
 
 Salary increases linearly with increasing years of experience and decreases linearly as location is further away from the city. The standard deviation shows the variation around the mean. For example, a candidate with 5 years of experience will earn an average of $100k but salary ranges from $70-$130k. As we can see later, the variation in salary depends on industry and type of position.
 
-![Boxplot](./images/boxplot.png)
+![Boxplot](./images/boxplot1.png)
+
+![Boxplot2](./images/boxplot2.png)
 
 *Job type and average salary*
 
@@ -78,7 +80,7 @@ There is linear relationship between the variables and salary, hence a linear re
 
 Feature importances of the Gradient Boosting model is shown below:
 
-![Feature](./images/feature.png)
+![Feature](./images/feature.PNG)
 
 Job type, years of experience, and location influence salary more than degree and major. Looking at the top 5 features for job type, junior and janitorial positions have more predictable salary compared to other positions. This is possible because entry-level and certain types of position are more likely to have a fix salary. It is intuitive that years of experience and location strongly influence salary as people get compensated more if they have more years of experience and are closer to the city, vice-versa. Feature importance for Random Forest shows similar patterns.
 
