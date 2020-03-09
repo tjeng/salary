@@ -38,9 +38,9 @@ Salary follows a close to normal distribution, implying that a most of the jobs 
 
 Salary increases linearly with increasing years of experience and decreases linearly as location is further away from the city. The standard deviation shows the variation around the mean. For example, a candidate with 5 years of experience will earn an average of $100k but salary ranges from $70-$130k. As we can see later, the variation in salary depends on industry and type of position.
 
-![Boxplot](./images/boxplot1.png)
+![Boxplot](./images/boxplot1.PNG)
 
-![Boxplot2](./images/boxplot2.png)
+![Boxplot2](./images/boxplot2.PNG)
 
 *Job type and average salary*
 
